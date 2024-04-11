@@ -50,9 +50,11 @@ $ python3 jyla.py
 
 Once started, you can access the Chatbot application at http://127.0.0.1:7860
 
-### Limitations
+### Notes and Limitations
 
 * The max Token count for JYLA is around 7500 tokens. JYLA uses nltk to count the number of tokens and removes previous chat history until the history and query is under 7500 tokens.
 * JYLA can be run on CPU and even a small laptop with at least 16 GB of RAM.  For the best results and fastest response times, we recommend running JYLA on a server with decent GPU processing power.
 * We recommend creating new chats for each new topic, to prevent the LLM from using previous context to answer your question
 * To reset the chat entirely, you have to stop the application and restart it
+* In many instances, you can simple tell JYLA to i gnore the previous context, and it will ignore previous messages 
+* For prompt engineering tips, see [Unleashing AI Genies: The Magical Art of Prompt Engineering](https://halcyonic.net/unleashing-ai-genies-the-magical-art-of-prompt-engineering/)

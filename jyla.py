@@ -94,7 +94,7 @@ def generate_response(query,gr_history):
     if not urls:
         final_response = "{}\n".format(response)
     else:
-        final_response = "{}\n\nLinks: \n{}".format(response, '\n'.join(urls))
+        final_response = "{}\n\nUseful Resources: \n{}".format(response, '\n'.join(urls))
     urls.clear()
     documents.clear()
     message = ""
