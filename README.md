@@ -15,6 +15,8 @@ JYLA aims to democratize access to sophisticated LLMs, enabling individuals, ope
 - **Cost-Effectiveness**: Traditional chatbots often come with hefty subscription fees or licensing costs, making them inaccessible to individuals and small businesses. JYLA, being open-source, eliminates these barriers by providing free access to powerful LLM capabilities.
 
 - **Customizability**: JYLA allows users to tailor their chatbot experience by easily modifying underlying models and configurations. Whether it's selecting different LLM architectures or fine-tuning response generation parameters, JYLA offers flexibility and customization options to suit diverse user needs.
+  
+- **Web Searching Capabilities**: JYLA will search the web for information regarding your question, and also remember questions you previously asked when calculating a response. 
 
 ### Dependenies
 
@@ -25,10 +27,10 @@ JYLA aims to democratize access to sophisticated LLMs, enabling individuals, ope
 
 ### Installation
 
-1. Install Ollama and ensure it is running on your local machine at http://localhost:11434.  The two default models that JYLA uses are [Llama2](https://ollama.com/library/llama2) (as the LLM) and [Nomic-Embed-Text](https://ollama.com/library/nomic-embed-text) (for embeddings). Feel free to modify these as needed.  To download these models through ollama, run the following commands on the command line:
+1. Install Ollama and ensure it is running on your local machine at http://localhost:11434.  The two default models that JYLA uses are [Mistral (Instruct)](https://ollama.com/library/mistral) (as the LLM) and [Nomic-Embed-Text](https://ollama.com/library/nomic-embed-text) (for embeddings). Feel free to modify these as needed.  To download these models through ollama, run the following commands on the command line:
 
 ```
-$ ollama pull llama2
+$ ollama pull mistral:instruct
 $ ollama pull nomic-embed-text
 ```
 
@@ -47,3 +49,12 @@ $ python3 jyla.py
 ```
 
 Once started, you can access the Chatbot application at http://127.0.0.1:7860
+
+### Notes and Limitations
+
+* The max Token count for JYLA is around 7500 tokens. JYLA uses nltk to count the number of tokens and removes previous chat history until the history and query is under 7500 tokens.
+* JYLA can be run on CPU and even a small laptop with at least 16 GB of RAM.  For the best results and fastest response times, we recommend running JYLA on a server with decent GPU processing power.
+* We recommend creating new chats for each new topic, to prevent the LLM from using previous context to answer your question
+* To reset the chat entirely, you have to stop the application and restart it
+* In many instances, you can simple tell JYLA to i gnore the previous context, and it will ignore previous messages 
+* For prompt engineering tips, see [Unleashing AI Genies: The Magical Art of Prompt Engineering](https://halcyonic.net/unleashing-ai-genies-the-magical-art-of-prompt-engineering/)
