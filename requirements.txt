@@ -1,0 +1,2 @@
+gradio==4.26.0
+llama_index==0.10.28
