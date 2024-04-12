@@ -62,24 +62,27 @@ if prompt:
 
     if not search_internet:
         with st.spinner("Searching..."):
-            llm = Ollama(model="mistral:instruct")
-            response = llm.invoke("Context: "+context+" Current Question: "+prompt)
-            # Add model response to history and display
-            print(response)
-            print(type(response))
-            st.session_state.messages.append({"role": "assistant", "content": response})
-            with st.chat_message("assistant"):
-                st.write(response)
+            try:
+                llm = Ollama(model="mistral:instruct")
+                response = llm.invoke("Context: "+context+" Current Question: "+prompt)
+                st.session_state.messages.append({"role": "assistant", "content": response})
+                with st.chat_message("assistant"):
+                    st.write(response)
+            except:
+                st.markdown("Could not process request.  Please Try Again")
     else:
-        with st.spinner("Searching..."):
-            llm = Ollama(
-                model="mistral:instruct", 
-                callback_manager=CallbackManager([FinalStreamingStdOutCallbackHandler()])
-            )
-            tools = load_tools(["ddg-search"])
-            agent = create_react_agent(llm, tools, prompt_template)
-            agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True,  callbacks=[StreamlitCallbackHandler(st.container())])  
-            response = agent_executor.invoke({"input": prompt, "context":context})
-            st.session_state.messages.append({"role": "assistant", "content": response['output']})
-            with st.chat_message("assistant"):
-                st.markdown(response['output'])
+        with st.spinner("Researching the answer to: "+prompt):
+            try:
+                llm = Ollama(
+                    model="mistral:instruct", 
+                    callback_manager=CallbackManager([FinalStreamingStdOutCallbackHandler()])
+                )
+                tools = load_tools(["ddg-search"])
+                agent = create_react_agent(llm, tools, prompt_template)
+                agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True,  callbacks=[StreamlitCallbackHandler(st.container())])  
+                response = agent_executor.invoke({"input": prompt, "context":context})
+                st.session_state.messages.append({"role": "assistant", "content": response['output']})
+                with st.chat_message("assistant"):
+                    st.markdown(response['output'])
+            except:
+                st.markdown("Could not process request.  Please Try Again")
