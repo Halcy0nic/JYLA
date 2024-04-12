@@ -68,7 +68,7 @@ if prompt:
     context = "\n".join(m["content"] for m in st.session_state.messages if m["role"] == "user")
 
     if not search_internet:
-        with st.spinner("Searching..."):
+        with st.spinner("Searching for the answer to: "+prompt):
             try:
                 llm = Ollama(model="mistral:instruct")
                 response = llm.invoke("Context: "+context+" Current Question: "+prompt)
@@ -78,7 +78,7 @@ if prompt:
             except:
                 st.markdown("Could not process request.  Please Try Again")
     else:
-        with st.spinner("Researching the answer to: "+prompt):
+        with st.spinner("Using the web to find the answer to: "+prompt):
             try:
                 llm = Ollama(
                     model="mistral:instruct", 
