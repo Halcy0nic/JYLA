@@ -1,117 +1,85 @@
-from llama_index.core import VectorStoreIndex
-from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.readers.web import SimpleWebPageReader
-from llama_index.core import Settings, Document
-from llama_index.llms.ollama import Ollama
-from duckduckgo_search import DDGS
-import nltk
+import streamlit as st
+from langchain_community.llms import Ollama
+from langchain.agents import AgentType, initialize_agent, load_tools, create_react_agent, AgentExecutor
+from langchain.callbacks.manager import CallbackManager
+from langchain_community.callbacks import StreamlitCallbackHandler
+from langchain.callbacks.streaming_stdout_final_only import FinalStreamingStdOutCallbackHandler
 from nltk.tokenize import word_tokenize
-import gradio as gr 
-from time import sleep
-
-nltk.download('punkt')  # Only needed the first time
-
-Settings.embed_model = OllamaEmbedding(
-    model_name="nomic-embed-text",
-    base_url="http://localhost:11434",
-)
-documents = []
-documents.append(Document(text="You are a AI assistant named JYLA and you respond in a formal manner without using emojis.  Answer based on the context given.  If you don't know the answer respond with \'I'm not sure, can you provide clarification?"))
-
-# Initialize your LLM
-Settings.llm = llm = Ollama(model="mistral:instruct", temperature=3, request_timeout=120.0)
-
-# Prompt the user for their search query
-urls = []
-history = []
-index = VectorStoreIndex.from_documents(documents)
-prompt_history = ""
-
-def tokenize(text):
-    nltk.download('punkt', quiet=True)
-    return word_tokenize(text)
-
-def update_history(query, response, max_tokens=7500):
-    global urls
-    global history
-    global prompt_history
-
-    # Create a new history entry
-    new_entry = {"query": query, "response": response}
-    history.append(new_entry)
-    
-    # Update prompt_history and check token count
-    prompt_history = "\n".join([f"Q: {item['query']} A: {item['response']}" for item in history])
-    
-    # Keep removing the oldest entries until the token count is under the limit
-    while len(tokenize(prompt_history)+tokenize(query)) > max_tokens:
-        history.pop(0)  # Remove the oldest history entry
-        prompt_history = "\n".join([f"Q: {item['query']} A: {item['response']}" for item in history])
-    
-    return history, prompt_history
-
-def clear_chat():
-    global history, prompt_history, urls, documents, index
-    history = []
-    prompt_history = ""
-    urls = []
-    documents = []
-    documents.append(Document(text="You are a AI assistant named JYLA and you respond in a formal manner without using emojis.  Answer based on the context given.  If you don't know the answer respond with \'I'm not sure, can you provide clarification?"))
-    index = VectorStoreIndex.from_documents(documents)
+from langchain_core.prompts import PromptTemplate
+import nltk
 
 
-def generate_response(query,gr_history):
-    global urls
-    global history
-    global documents
-    global prompt_history
-    global index
+template = '''Answer the following questions as best you can. You have access to the following tools:
 
-    generate_search = f"Can you create a duckduckgo search query for the following question? Respond with the search query and no other words.\nContext: {prompt_history}\nQuery: {query}"
-    response = llm.complete(generate_search)
-    #print(response)
-    #links = DDGS().text(str(response).strip("\n").strip('\"').strip("\'"), max_results=2)
-    try:
-        links = DDGS().text("{}".format(str(response).strip('\"')), max_results=2)
-        for url in links:
-            #print(url['href'])
-            urls.append(url['href'])
-    except:
-        pass
-    
-    documents = SimpleWebPageReader(html_to_text=True).load_data(urls)
+{tools}
 
-    for doc in documents:
-        index.insert(doc)
-    index.refresh_ref_docs(documents)
+Use the following format:
 
-    # set Logging to DEBUG for more detailed outputs
-    query_engine = index.as_query_engine()
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [{tool_names}]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
 
-    #prompt = f"Context: {prompt_history}\n\n\nCurrent Question:\n{query}"
-    response = query_engine.query(query)
-    history, prompt_history = update_history(query, response)
-    if not urls:
-        final_response = "{}\n".format(response)
+Begin!
+Context:{context}
+Question: {input}
+Thought:{agent_scratchpad}
+'''
+
+prompt_template = PromptTemplate.from_template(template)
+
+nltk.download('punkt', quiet=True)
+
+st.title("JYLA (Just Your Lazy AI)")
+
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display chat messages from history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# Accept user input
+prompt = st.chat_input("What's on your mind?")
+# Checkbox for internet search option
+search_internet = st.sidebar.checkbox("Check internet?", value=False, key="internet")
+if prompt:
+    # Add user message to history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    tokens = sum(len(word_tokenize(m["content"])) for m in st.session_state.messages)
+    while tokens > 7500:  # Adjust as per model's token limit
+        st.session_state.messages.pop(0)
+        tokens = sum(len(word_tokenize(m["content"])) for m in st.session_state.messages)
+
+    context = "\n".join(m["content"] for m in st.session_state.messages if m["role"] == "user")
+
+    if not search_internet:
+        with st.spinner("Searching..."):
+            llm = Ollama(model="mistral:instruct")
+            response = llm.invoke("Context: "+context+" Current Question: "+prompt)
+            # Add model response to history and display
+            print(response)
+            print(type(response))
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            with st.chat_message("assistant"):
+                st.write(response)
     else:
-        final_response = "{}\n\nUseful Resources: \n{}".format(response, '\n'.join(urls))
-    urls.clear()
-    documents.clear()
-    message = ""
-    for token in final_response:
-        sleep(0.01)
-        message += token
-        yield message
-
-
-chatbot = gr.ChatInterface(
-                generate_response,
-                chatbot=gr.Chatbot([[None, "Welcome Friend! What is on your mind?"]], avatar_images=["img/jyla-user-image.png", "img/jyla-chatbot.png"],height=550),
-                title="JYLA (Just Your Lazy AI)",
-                description="Feel free to ask any question.",
-                submit_btn="Send",
-                clear_btn="Clear Screen",
-                undo_btn=None,
-                retry_btn=None,
-)
-chatbot.launch()
+        with st.spinner("Searching..."):
+            llm = Ollama(
+                model="mistral:instruct", 
+                callback_manager=CallbackManager([FinalStreamingStdOutCallbackHandler()])
+            )
+            tools = load_tools(["ddg-search"])
+            agent = create_react_agent(llm, tools, prompt_template)
+            agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True,  callbacks=[StreamlitCallbackHandler(st.container())])  
+            response = agent_executor.invoke({"input": prompt, "context":context})
+            st.session_state.messages.append({"role": "assistant", "content": response['output']})
+            with st.chat_message("assistant"):
+                st.markdown(response['output'])
