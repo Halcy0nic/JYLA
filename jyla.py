@@ -40,6 +40,13 @@ st.title("JYLA (Just Your Lazy AI)")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Add delete button to the sidebar
+if st.sidebar.button("Delete All Messages"):
+    # Clear the messages stored in session state
+    st.session_state.messages = []
+    # Reload the page to reflect changes
+    #st.experimental_rerun()
+
 # Display chat messages from history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -79,7 +86,7 @@ if prompt:
                 )
                 tools = load_tools(["ddg-search"])
                 agent = create_react_agent(llm, tools, prompt_template)
-                agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True,  callbacks=[StreamlitCallbackHandler(st.container())])  
+                agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True,  handle_parsing_errors=True, callbacks=[StreamlitCallbackHandler(st.container())])  
                 response = agent_executor.invoke({"input": prompt, "context":context})
                 st.session_state.messages.append({"role": "assistant", "content": response['output']})
                 with st.chat_message("assistant"):
